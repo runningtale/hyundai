@@ -6,6 +6,7 @@ import android.graphics.Canvas
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.support.v4.media.MediaBrowserCompat.MediaItem
@@ -68,7 +69,13 @@ class StoryMediaService : MediaBrowserServiceCompat() {
         sessionToken = session.sessionToken
 
         // 장이 바뀌면 재생 카드, 목적지가 바뀌면 목록 부제 갱신
-        graph.scope.launch { director.nowPlaying.collect { session.setMetadata(metadataOf(it)) } }
+        graph.scope.launch {
+            director.nowPlaying.collect {
+                session.setMetadata(metadataOf(it))
+                // 결말까지 다 읽으면 버튼을 재생(▶)으로 돌려 "다시 듣기"가 보이게 함
+                if (it.finished) setState(PlaybackStateCompat.STATE_PAUSED)
+            }
+        }
         graph.scope.launch { director.destinationLabel.collect { notifyChildrenChanged(TAB_ID) } }
     }
 
@@ -84,18 +91,20 @@ class StoryMediaService : MediaBrowserServiceCompat() {
             .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_TITLE, title)
             .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, subtitle)
             .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE, subtitle)
+            // Pleos 미디어 앱은 비트맵이 아니라 주소(URI)로 그림을 읽음 (에뮬레이터 확인). 다른 화면을 위해 비트맵도 같이 넣음
+            .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, artUri)
+            .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
+            .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
             .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, art)
-            .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, art)
             .build()
     }
 
-    /** 재생 카드 그림. 세션 메타데이터는 프레임워크가 크기를 줄여 넘김 */
+    /** 재생 카드·목록 그림 주소. 주소로 읽히려면 그림이 PNG여야 함 (벡터 XML은 주소로 못 읽음) */
+    private val artUri by lazy { "android.resource://$packageName/drawable/art_default" }
+
+    /** 재생 카드 그림 비트맵. 세션 메타데이터는 프레임워크가 크기를 줄여 넘김 */
     private val art: Bitmap by lazy { render(R.drawable.art_default, ART_SIZE_PX) }
 
-    /** 목록 항목 그림. onLoadChildren 결과는 binder로 그대로 넘어가므로 작게 (TransactionTooLarge 방지) */
-    private val listIcon: Bitmap by lazy { render(R.drawable.art_default, LIST_ICON_SIZE_PX) }
-
-    /** 벡터·PNG 모두 받도록 Drawable을 직접 그려 Bitmap으로 만듦 */
     private fun render(resId: Int, sizePx: Int): Bitmap {
         val drawable = checkNotNull(ContextCompat.getDrawable(this, resId))
         return Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888).also {
@@ -126,7 +135,7 @@ class StoryMediaService : MediaBrowserServiceCompat() {
                         .setMediaId(START_ID)
                         .setTitle("출발하며 듣기")
                         .setSubtitle(director.destinationLabel.value?.let { "$it 가는 길 이야기" } ?: DEFAULT_SUBTITLE)
-                        .setIconBitmap(listIcon)
+                        .setIconUri(Uri.parse(artUri))
                         .build(),
                     MediaItem.FLAG_PLAYABLE,
                 ),
@@ -209,7 +218,6 @@ class StoryMediaService : MediaBrowserServiceCompat() {
         const val APP_TITLE = "달리는 동화"
         const val DEFAULT_SUBTITLE = "이번 여정이 이야기가 돼요"
         const val ART_SIZE_PX = 512
-        const val LIST_ICON_SIZE_PX = 128
         const val ROOT_ID = "root"
         const val TAB_ID = "stories"
         const val START_ID = "start"
