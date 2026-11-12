@@ -34,4 +34,13 @@ object AppConfig {
     /** 효과 상한 (docs/03_모듈간_약속.md 4장) */
     const val READING_LIGHT_MAX_SEC = 30
     const val FAN_MAX_SEC = 60
+
+    /**
+     * 같은 종류 효과 사이 최소 간격 [가정: 3분, docs/07 3-2절]. 자주 바뀌면 운전자와 아이 모두 산만함.
+     * 효과가 2종이라 이 간격이면 한 장(1~2분)에 효과는 많아야 2개 → "장당 최대 2개" 규칙도 같이 지켜짐
+     */
+    const val EFFECT_COOLDOWN_SEC = 180
+
+    /** 비가 오기 시작하면 LLM 응답을 기다리지 않고 바로 켜는 풍량 효과 시간 */
+    const val RAIN_FAN_SEC = 20
 }

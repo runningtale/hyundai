@@ -5,6 +5,8 @@ import com.runningtale.config.AppConfig
 import com.runningtale.model.Chapter
 import com.runningtale.model.ChildProfile
 import com.runningtale.model.DriveEvent
+import com.runningtale.model.Effect
+import com.runningtale.model.EffectType
 import com.runningtale.model.Gear
 import com.runningtale.model.Interlude
 import com.runningtale.model.InterludeTrigger
@@ -253,9 +255,11 @@ class StoryDirector(
 
     /**
      * 예고 없는 이벤트: 즉시 요청, 늦으면 범용 문장 (generator 안에서 처리)
-     * TODO(담당 3): 문서(02 3-4절)대로 이벤트에 붙는 효과는 LLM 응답 전에 바로 실행 (예: 비 시작 → 풍량)
+     * 이벤트에 붙는 효과는 생성 응답을 기다리지 않고 바로 실행 (docs/02 3-4절, docs/07 3-2절).
+     * 끼어들기 문장에 같은 효과가 또 붙어 와도 EffectController의 실행 중·쿨다운 규칙에 걸려 두 번 실행되지 않음
      */
     private fun surprise(trigger: InterludeTrigger) {
+        IMMEDIATE_EFFECTS[trigger]?.let { effects.apply(it, child.seat, trip) }
         val s = skeleton ?: return
         scope.launch {
             val interlude = generator.interlude(s, storySoFar.toString(), trigger, trip)
@@ -279,5 +283,9 @@ class StoryDirector(
     private companion object {
         const val TAG = "StoryDirector"
         const val SAME_EVENT_GAP_MS = 60_000L
+
+        val IMMEDIATE_EFFECTS = mapOf(
+            InterludeTrigger.RAIN_START to Effect(EffectType.FAN, durationSec = AppConfig.RAIN_FAN_SEC),
+        )
     }
 }

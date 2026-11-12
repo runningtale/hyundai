@@ -6,6 +6,7 @@ import ai.pleos.playground.vehicle.constant.control.LightSwitch
 import ai.pleos.playground.vehicle.listener.HvacAutoStateListener
 import ai.pleos.playground.vehicle.listener.HvacFanSpeedListener
 import ai.pleos.playground.vehicle.listener.HvacPowerStateListener
+import android.os.SystemClock
 import android.util.Log
 import com.runningtale.config.AppConfig
 import com.runningtale.model.Effect
@@ -25,6 +26,7 @@ import kotlinx.coroutines.launch
  * - 독서등: 아이 자리만, 전조등 켜짐이면 실행 안 함, 최대 30초
  * - 풍량: 공조 꺼짐이면 실행 안 함, +1단, 최대 60초, 끝나면 원래 값(AUTO 포함)으로
  * - 같은 종류가 실행 중이면 새 요청 무시
+ * - 같은 종류는 마지막 실행 후 EFFECT_COOLDOWN_SEC 동안 다시 실행 안 함
  *
  * TODO(담당 2): 주행 규제(driving_regulation on) 상태에서 set 호출이 되는지 확인하고 결과를 docs/05에 기록
  */
@@ -42,6 +44,7 @@ class EffectController(
     private var fanJob: Job? = null
     private var fanRestore: Pair<Int, Boolean>? = null // (원래 풍량, 원래 AUTO)
     private val lightJobs = mutableMapOf<SeatPosition, Job>()
+    private val lastStartedAt = mutableMapOf<EffectType, Long>()
 
     /**
      * 공조 구역과 현재 상태를 읽어 캐시. 효과 판단은 이 캐시로 동기 처리.
@@ -88,9 +91,20 @@ class EffectController(
     }
 
     /** @return 실행했으면 true, 규칙에 걸리면 false */
-    fun apply(effect: Effect, seat: SeatPosition, trip: TripState): Boolean = when (effect.type) {
-        EffectType.READING_LIGHT -> readingLight(seat, effect.durationSec, trip)
-        EffectType.FAN -> fan(effect.durationSec)
+    fun apply(effect: Effect, seat: SeatPosition, trip: TripState): Boolean {
+        val now = SystemClock.elapsedRealtime()
+        val last = lastStartedAt[effect.type]
+        if (last != null && now - last < AppConfig.EFFECT_COOLDOWN_SEC * 1000L) {
+            Log.d(TAG, "${effect.type} 쿨다운 중, 건너뜀")
+            return false
+        }
+        val started = when (effect.type) {
+            EffectType.READING_LIGHT -> readingLight(seat, effect.durationSec, trip)
+            EffectType.FAN -> fan(effect.durationSec)
+        }
+        if (started) lastStartedAt[effect.type] = now
+        Log.i(TAG, "${effect.type} ${effect.durationSec}초 ${if (started) "실행" else "조건 안 맞아 건너뜀"}")
+        return started
     }
 
     private fun readingLight(seat: SeatPosition, durationSec: Int, trip: TripState): Boolean {
