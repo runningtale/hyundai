@@ -13,7 +13,11 @@ import com.runningtale.model.StorySkeleton
  */
 class SafetyFilter {
 
-    /** 목적지 이름으로 장소 종류 분류. 허용 목록 밖이면 BLOCKED → 이름을 이야기에 쓰지 않음 */
+    /**
+     * 목적지 이름으로 장소 종류 분류.
+     * - 금지 장소(장례식장, 병원 등)는 BLOCKED, 어느 키워드에도 안 맞으면 OTHER
+     * - 목적지 이름은 분류된 장소(BLOCKED, OTHER 제외)일 때만 LLM에 보냄 (PromptBuilder.endingHint)
+     */
     fun classifyPlace(name: String?): PlaceKind {
         if (name.isNullOrBlank()) return PlaceKind.OTHER
         if (BLOCKED_PLACE_WORDS.any { name.contains(it) }) return PlaceKind.BLOCKED
@@ -35,9 +39,9 @@ class SafetyFilter {
     fun personalize(interlude: Interlude, childName: String): Interlude =
         interlude.copy(lines = interlude.lines.map { it.personalize(childName) })
 
+    /** 제목은 다음 생성 요청에 다시 쓰이므로 치환하지 않음 (낭독하지 않음) */
     fun personalize(skeleton: StorySkeleton, childName: String): StorySkeleton =
         skeleton.copy(
-            title = skeleton.title.replace(PLACEHOLDER, childName),
             characters = skeleton.characters.map { it.copy(name = it.name.replace(PLACEHOLDER, childName)) },
             firstChapter = personalize(skeleton.firstChapter, childName),
         )
