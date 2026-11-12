@@ -33,6 +33,7 @@ class EffectController(
     private val scope: CoroutineScope,
 ) {
     private var fanArea: SeatArea? = null
+    private var autoArea: SeatArea? = null
     private var fanMax: Int = 8
     private var hvacOn: Boolean = false
     private var hvacAuto: Boolean = false
@@ -42,16 +43,35 @@ class EffectController(
     private var fanRestore: Pair<Int, Boolean>? = null // (원래 풍량, 원래 AUTO)
     private val lightJobs = mutableMapOf<SeatPosition, Job>()
 
-    /** 공조 구역과 현재 상태를 읽어 캐시. 효과 판단은 이 캐시로 동기 처리 */
+    /**
+     * 공조 구역과 현재 상태를 읽어 캐시. 효과 판단은 이 캐시로 동기 처리.
+     * 풍량, 전원, AUTO는 지원 구역이 서로 다를 수 있어 각각 조회함
+     * (에뮬레이터: 풍량은 앞좌석 묶음 0x5, 전원은 다른 구역 → 같은 구역으로 읽으면 IllegalArgumentException)
+     * 리스너는 값이 바뀔 때만 오므로 현재 값을 한 번 읽어 캐시를 채움
+     */
     fun start() {
-        vehicle.getHVAC().checkHvacFanSpeedCapabilities({ areas ->
+        val hvac = vehicle.getHVAC()
+        hvac.checkHvacFanSpeedCapabilities({ areas ->
             val (area, bounds) = areas.entries.firstOrNull() ?: return@checkHvacFanSpeedCapabilities
             fanArea = area
             fanMax = bounds.maxValue ?: fanMax
-            vehicle.getHVAC().registerHvacPowerState(area, powerListener)
-            vehicle.getHVAC().registerHvacAutoState(area, autoListener)
-            vehicle.getHVAC().registerHvacFanSpeed(area, fanListener)
-        }, { Log.w(TAG, "fan capability 실패", it) })
+            Log.i(TAG, "풍량 구역 ${area.values.toList()}, 최대 $fanMax")
+            hvac.registerHvacFanSpeed(area, fanListener)
+            hvac.getHvacFanSpeed(area, { currentFan = it; Log.i(TAG, "현재 풍량 $it") }, { Log.w(TAG, "풍량 읽기 실패", it) })
+        }, { Log.w(TAG, "풍량 구역 조회 실패", it) })
+
+        hvac.checkHvacPowerCapabilities({ areas ->
+            val area = areas.firstOrNull() ?: return@checkHvacPowerCapabilities
+            hvac.registerHvacPowerState(area, powerListener)
+            hvac.getHvacPowerState(area, { hvacOn = it == true; Log.i(TAG, "공조 전원 $it") }, { Log.w(TAG, "공조 전원 읽기 실패", it) })
+        }, { Log.w(TAG, "공조 전원 구역 조회 실패", it) })
+
+        hvac.checkHvacAutoCapabilities({ areas ->
+            val area = areas.firstOrNull() ?: return@checkHvacAutoCapabilities
+            autoArea = area
+            hvac.registerHvacAutoState(area, autoListener)
+            hvac.getHvacAutoState(area, { hvacAuto = it == true }, { Log.w(TAG, "AUTO 읽기 실패", it) })
+        }, { Log.w(TAG, "AUTO 구역 조회 실패", it) })
     }
 
     private val powerListener = object : HvacPowerStateListener {
@@ -74,7 +94,8 @@ class EffectController(
     }
 
     private fun readingLight(seat: SeatPosition, durationSec: Int, trip: TripState): Boolean {
-        if (trip.isHeadlightOn) return false
+        // 주행 중(D)에는 차량이 독서등 제어를 거부함 (에뮬레이터 주행 상태에서 IllegalArgumentException 50001 확인)
+        if (trip.isHeadlightOn || trip.isMoving) return false
         if (lightJobs[seat]?.isActive == true) return false
         val area = seat.toSeatArea()
         val sec = durationSec.coerceAtMost(AppConfig.READING_LIGHT_MAX_SEC)
@@ -105,7 +126,8 @@ class EffectController(
         val area = fanArea ?: return
         val (speed, auto) = fanRestore ?: return
         vehicle.getHVAC().setHvacFanSpeed(area, speed, { _, _ -> }, { Log.w(TAG, "풍량 복귀 실패", it) })
-        if (auto) vehicle.getHVAC().setHvacAuto(area, true, { _, _ -> }, { Log.w(TAG, "AUTO 복귀 실패", it) })
+        val aArea = autoArea
+        if (auto && aArea != null) vehicle.getHVAC().setHvacAuto(aArea, true, { _, _ -> }, { Log.w(TAG, "AUTO 복귀 실패", it) })
         fanRestore = null
     }
 
