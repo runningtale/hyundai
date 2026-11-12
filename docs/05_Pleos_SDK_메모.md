@@ -23,6 +23,9 @@ implementation("ai.pleos.playground:TextToSpeech:3.3.1")
 <uses-permission android:name="pleos.car.permission.CAR_CLIMATE" />
 <uses-permission android:name="pleos.car.permission.CONTROL_CAR_CLIMATE" />
 <uses-permission android:name="pleos.car.permission.CAR_SEATS" />
+<uses-permission android:name="pleos.car.permission.CAR_DRIVE" />    <!-- 기어 -->
+<uses-permission android:name="pleos.car.permission.CAR_DOORS" />    <!-- 도어 -->
+<uses-permission android:name="pleos.car.permission.CAR_WINDOWS" />  <!-- 와이퍼 -->
 <uses-permission android:name="pleos.car.permission.NAVI_ROUTE" />
 <uses-permission android:name="pleos.car.permission.TTS_SERVICE" />
 ```
@@ -92,7 +95,26 @@ tts.stop(); tts.release()
 - 한국은 "차량 설정"(`UX_RESTRICTIONS_NO_SETUP`)이 주행 중 금지. 앱의 공조·조명 제어가 해당되는지는 확인 필요
 - 외부 통신: HTTPS, TLS 1.2 이상, API 키 하드코딩 금지
 
-## 6. 에뮬레이터
+## 6. 에뮬레이터에서 직접 확인한 결과 (2026-11-12)
+
+| 항목 | 결과 | 비고 |
+|---|---|---|
+| 미디어 화면에 앱 표시, 재생 | 됨 | Pleos 미디어 앱은 루트 자식을 탭으로 보여 줌 → 루트 → 탭(BROWSABLE) → 재생 항목(PLAYABLE) 2단 구조 필요 |
+| TTS 한국어 낭독, 화자 바꾸기 | 됨 | 문장당 2~3초. `addEventListener`는 `initialize` 성공 뒤에 호출해야 함 (먼저 호출하면 앱이 죽음). `speak(text, true)`여야 `onDone`이 옴 |
+| 기어, 뒷좌석 착석, 뒷문, 와이퍼, 전조등 이벤트 | 됨 | 퍼미션 `CAR_DRIVE`(기어), `CAR_DOORS`, `CAR_WINDOWS`(와이퍼) 추가 필요. 없으면 `SecurityException`으로 앱이 죽음 |
+| 리스너 등록 시간 | 느림 | 등록에 10초 넘게 걸림 → 메인 스레드가 아닌 곳에서 등록 |
+| 공조 리스너 초기값 | 안 옴 | 값이 바뀔 때만 옴 → 시작할 때 `get…`으로 한 번 읽어야 함 |
+| 공조 구역 | 기능마다 다름 | 풍량은 앞좌석 묶음(0x5), 전원·AUTO는 다른 구역. 같은 구역으로 읽으면 `IllegalArgumentException` → 기능마다 `check…Capabilities`로 구역 조회 |
+| 풍량 효과 | 됨 (정차·주행 모두) | 3 → 4 → 원래 3으로 복귀 확인 (Virtual Console) |
+| 독서등 효과 | **정차 중만 됨** | 주행 상태(D + 가속)에서는 `IllegalArgumentException: 50001`로 거부됨 → 주행 중에는 쓰지 않음 |
+| 터널 미리 생성 → 진입 시 끼어들기 | 됨 | 이벤트 주입으로 확인 |
+| 비 시작·그침 끼어들기 | 됨 | |
+| 도착 시 효과 복귀, 다시 재생하면 새 이야기 | 됨 | |
+| 주행 규제 상태에서 낭독 | 됨 | `DO: true UxR: 80` 상태에서 확인 |
+| `cmd hmg_car_service ... driving_regulation` | 이 이미지에 없음 | Virtual Console의 D + ACCEL로 주행 상태를 만듦 |
+| adb 미디어 키(`KEYCODE_MEDIA_PLAY`) | 앱까지 안 감 | 앱은 사용자 10, adb 키는 다른 사용자 → 화면 탭으로 재생 |
+
+## 7. 에뮬레이터
 
 ```bash
 # 실행 (Windows)
@@ -101,7 +123,7 @@ tts.stop(); tts.release()
 # Virtual Console (브라우저에서 차량 값 바꾸기)
 adb forward tcp:8088 tcp:8088     # 이후 http://127.0.0.1:8088
 
-# 주행 규제 켜기/끄기
+# 주행 규제 켜기/끄기 (공식 문서 명령. 지금 에뮬레이터 이미지에는 없음 → Virtual Console의 D + ACCEL 사용)
 adb shell cmd hmg_car_service --service drivingstate driving_regulation on
 adb shell cmd hmg_car_service --service drivingstate driving_regulation off
 ```

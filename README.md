@@ -28,6 +28,8 @@
 
 ## 실행 방법
 
+처음이면 에뮬레이터 설치부터: [docs/00_개발환경_설정.md](docs/00_개발환경_설정.md)
+
 1. 저장소를 받습니다. 경로에 한글이 있으면 빌드가 실패할 수 있어 영문 경로를 권장합니다.
    ```bash
    git clone https://github.com/runningtale/hyundai.git C:/dev/hyundai
@@ -40,7 +42,12 @@
    ```bash
    ./gradlew :app:installDebug
    ```
-4. 에뮬레이터의 미디어 화면에서 "달리는 동화" → "출발하며 듣기"를 누릅니다. 앱은 자동 재생하지 않습니다.
+4. 차 미디어 화면에 앱을 띄웁니다.
+   ```bash
+   adb shell am start -a android.car.intent.action.MEDIA_TEMPLATE \
+     --es android.car.intent.extra.MEDIA_COMPONENT com.runningtale/.playback.StoryMediaService
+   ```
+5. "이야기" 탭 → **출발하며 듣기**를 누릅니다. 앱은 자동 재생하지 않습니다.
 
 ### 시연: 도로 이벤트 넣기 (debug 빌드)
 
@@ -53,7 +60,8 @@ R="-n com.runningtale/.debug.DebugEventReceiver -a com.runningtale.DEBUG_EVENT"
 #    공백이 있는 값은 작은따옴표를 큰따옴표로 한 번 더 감쌈 (adb shell이 공백에서 나누기 때문)
 adb shell am broadcast $R --es type destination --es name "'강릉 경포해변'" --ei remain 9000
 
-# 2) 미디어 화면에서 "출발하며 듣기" 재생
+# 2) 미디어 화면에서 "출발하며 듣기" 재생 (adb 미디어 키는 에뮬레이터에서 앱까지 안 가서 화면을 누름)
+adb shell input tap 1090 370
 
 # 3) 주행 중 이벤트
 adb shell am broadcast $R --es type gear --es value D
@@ -87,11 +95,12 @@ app/src/debug/  시연용 이벤트 주입
 
 | 문서 | 내용 |
 |---|---|
+| [00_개발환경_설정](docs/00_개발환경_설정.md) | 에뮬레이터 설치, 빌드, 앱 실행, Virtual Console |
 | [01_기획서](docs/01_기획서.md) | 문제, 타깃, 핵심 가치, 사업성, 범위 |
 | [02_구조설계](docs/02_구조설계.md) | 모듈 구성, 실시간 생성 흐름, 실패 대체 |
 | [03_모듈간_약속](docs/03_모듈간_약속.md) | 데이터 형식, 이벤트, 인터페이스, LLM JSON |
 | [04_이야기재료_효과](docs/04_이야기재료_효과.md) | 쓸 수 있는 차량·내비 데이터와 효과 |
-| [05_Pleos_SDK_메모](docs/05_Pleos_SDK_메모.md) | 확인한 API, 퍼미션, 주행 규제, 에뮬레이터 |
+| [05_Pleos_SDK_메모](docs/05_Pleos_SDK_메모.md) | 확인한 API, 퍼미션, 주행 규제, 에뮬레이터 검증 결과 |
 | [06_역할분담_일정](docs/06_역할분담_일정.md) | 담당과 일정, 제출 전 점검 |
 
 팀 작업 규칙(커밋 작성자, 브랜치, API 키)은 [CONTRIBUTING.md](CONTRIBUTING.md)에 있습니다.
