@@ -41,6 +41,8 @@
 3. 에뮬레이터를 켜고 설치합니다.
    ```bash
    ./gradlew :app:installDebug
+   # 다시 설치했으면 미디어 앱도 다시 시작 (안 하면 목록이 계속 로딩 중으로 보임)
+   adb shell am force-stop ai.umos.mediaapp
    ```
 4. 차 미디어 화면에 앱을 띄웁니다.
    ```bash

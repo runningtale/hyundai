@@ -113,6 +113,12 @@ tts.stop(); tts.release()
 | 주행 규제 상태에서 낭독 | 됨 | `DO: true UxR: 80` 상태에서 확인 |
 | `cmd hmg_car_service ... driving_regulation` | 이 이미지에 없음 | Virtual Console의 D + ACCEL로 주행 상태를 만듦 |
 | adb 미디어 키(`KEYCODE_MEDIA_PLAY`) | 앱까지 안 감 | 앱은 사용자 10, adb 키는 다른 사용자 → 화면 탭으로 재생 |
+| 재생 카드 제목·부제 | 됨 | `MediaMetadataCompat`의 TITLE, ARTIST가 미디어 화면 왼쪽 아래 카드에 보임 |
+| 재생 카드·목록 그림 | **주소(URI)로만 됨** | 비트맵(`ALBUM_ART`, `setIconBitmap`)은 무시하고 음표 아이콘을 보여 줌. `android.resource://패키지/drawable/이름` 주소로 넘기면 보임. 그림은 PNG여야 함 (벡터 XML은 주소로 못 읽음) |
+| 경로 안내 없을 때 목적지 | 빈 이름, 0초 | `getDestinationInfo`가 5초마다 빈 값을 줌 → 그대로 넘기면 알던 목적지가 지워져서 `NaviGateway`에서 건너뜀 |
+| 앱 다시 설치 후 미디어 화면 | 계속 로딩 | 미디어 앱이 끊긴 연결을 붙잡고 있음 → `adb shell am force-stop ai.umos.mediaapp` 후 다시 열기 |
+| 공조 패널 화면 터치 | 반응 없음 | 공조 켜기는 Virtual Console에서 |
+| 효과 쿨다운 | 됨 | 도착 후 다시 재생했을 때 3분 안의 같은 독서등은 건너뜀 (로그 `EffectController`) |
 
 ## 7. 에뮬레이터
 
