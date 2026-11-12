@@ -10,6 +10,10 @@
     <uses-permission android:name="pleos.car.permission.CAR_CLIMATE" />
     <uses-permission android:name="pleos.car.permission.CONTROL_CAR_CLIMATE" />
     <uses-permission android:name="pleos.car.permission.CAR_SEATS" />
+    <!-- 기어(CAR_DRIVE), 뒷문(CAR_DOORS), 와이퍼(CAR_WINDOWS) 읽기 -->
+    <uses-permission android:name="pleos.car.permission.CAR_DRIVE" />
+    <uses-permission android:name="pleos.car.permission.CAR_DOORS" />
+    <uses-permission android:name="pleos.car.permission.CAR_WINDOWS" />
 
     <!-- Pleos 내비, TTS -->
     <uses-permission android:name="pleos.car.permission.NAVI_ROUTE" />

@@ -77,22 +77,31 @@ class VehicleGateway(context: Context) {
         override fun onFailed(e: Exception) { Log.w(TAG, "전조등 구독 실패", e) }
     }
 
+    /** 하나가 실패해도(퍼미션, 미지원 차종) 나머지는 계속 등록. 실패는 로그로만 */
     fun start() {
         vehicle.initialize()
-        vehicle.getGear().registerGearSelection(gearListener)
-        seatListeners.forEach { (seat, l) -> vehicle.getSeat().registerSeatOccupancy(seat.toSeatArea(), l) }
-        doorListeners.forEach { (seat, l) -> vehicle.getDoor().registerDoorPosition(seat.toDoorArea(), l) }
-        vehicle.getWiper().registerWiperState(frontWindshield, wiperListener)
-        vehicle.getLight().registerLowBeamLightState(headlightListener)
+        safely("기어") { vehicle.getGear().registerGearSelection(gearListener) }
+        seatListeners.forEach { (seat, l) -> safely("착석 $seat") { vehicle.getSeat().registerSeatOccupancy(seat.toSeatArea(), l) } }
+        doorListeners.forEach { (seat, l) -> safely("도어 $seat") { vehicle.getDoor().registerDoorPosition(seat.toDoorArea(), l) } }
+        safely("와이퍼") { vehicle.getWiper().registerWiperState(frontWindshield, wiperListener) }
+        safely("전조등") { vehicle.getLight().registerLowBeamLightState(headlightListener) }
     }
 
     fun stop() {
-        vehicle.getGear().unregisterGearSelection(gearListener)
-        seatListeners.forEach { (seat, l) -> vehicle.getSeat().unregisterSeatOccupancy(seat.toSeatArea(), l) }
-        doorListeners.forEach { (seat, l) -> vehicle.getDoor().unregisterDoorPosition(seat.toDoorArea(), l) }
-        vehicle.getWiper().unregisterWiperState(frontWindshield, wiperListener)
-        vehicle.getLight().unregisterLowBeamLightState(headlightListener)
+        safely("기어 해제") { vehicle.getGear().unregisterGearSelection(gearListener) }
+        seatListeners.forEach { (seat, l) -> safely("착석 해제") { vehicle.getSeat().unregisterSeatOccupancy(seat.toSeatArea(), l) } }
+        doorListeners.forEach { (seat, l) -> safely("도어 해제") { vehicle.getDoor().unregisterDoorPosition(seat.toDoorArea(), l) } }
+        safely("와이퍼 해제") { vehicle.getWiper().unregisterWiperState(frontWindshield, wiperListener) }
+        safely("전조등 해제") { vehicle.getLight().unregisterLowBeamLightState(headlightListener) }
         vehicle.release()
+    }
+
+    private inline fun safely(what: String, block: () -> Unit) {
+        try {
+            block()
+        } catch (e: Exception) {
+            Log.e(TAG, "$what 등록 실패", e)
+        }
     }
 
     /** 시연용 이벤트 주입(debug)도 이 경로로 들어옴 */
