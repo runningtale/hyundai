@@ -16,9 +16,10 @@ import java.util.Locale
 /**
  * Pleos TTS 낭독 (담당 3). ON_DEVICE 모드라 앱 등록 없이 동작.
  *
- * TODO(담당 3):
- *  - speak의 두 번째 인자 의미 확인 (지금은 문서 예시대로 false)
- *  - 효과음, 배경음 재생 추가 (라이선스 확인된 파일만)
+ * speak(text, true): 두 번째 인자의 SDK 기본값은 true. false를 주면 ON_DEVICE 스트림이
+ * 다음 문장을 기다리며 끝나지 않아 onDone이 오지 않음 (에뮬레이터에서 확인)
+ *
+ * TODO(담당 3): 효과음, 배경음 재생 추가 (라이선스 확인된 파일만)
  */
 class Narrator(context: Context) {
 
@@ -39,10 +40,13 @@ class Narrator(context: Context) {
         override fun onUpdatedRms(rms: Double) {}
     }
 
+    private val ready = CompletableDeferred<Boolean>()
+
+    /** 리스너는 초기화가 끝난 뒤에 붙여야 함 (먼저 붙이면 SDK 내부 lateinit 오류로 앱이 죽음) */
     fun start() {
-        tts.addEventListener(listener)
         tts.initialize(object : OnInitializeListener {
             override fun onSuccess() {
+                tts.addEventListener(listener)
                 tts.setLocale(Locale.KOREA)
                 tts.setAudioAttributes(
                     AudioAttributes.Builder()
@@ -51,31 +55,35 @@ class Narrator(context: Context) {
                         .build(),
                 )
                 isReady = true
+                ready.complete(true)
+                Log.i(TAG, "tts 준비 완료")
             }
 
             override fun onFailure(errorType: ErrorType) {
                 Log.e(TAG, "tts init 실패 $errorType")
+                ready.complete(false)
             }
         })
     }
 
-    /** 한 문장을 다 읽으면 반환. 실패하거나 너무 오래 걸리면 그냥 넘어감 */
+    /** 한 문장을 다 읽으면 반환. 초기화를 최대 10초 기다리고, 실패하거나 너무 오래 걸리면 그냥 넘어감 */
     suspend fun speak(text: String, voice: Voice) {
-        if (!isReady) return
+        if (withTimeoutOrNull(INIT_WAIT_MS) { ready.await() } != true) return
+        Log.d(TAG, "speak[${voice.pleosId}] $text")
         val done = CompletableDeferred<Unit>()
         current = done
         tts.setSpeakerType(voice.pleosId)
-        tts.speak(text, false)
+        tts.speak(text, true)
         withTimeoutOrNull(MAX_LINE_MS) { done.await() }
     }
 
     fun stop() {
-        tts.stop()
+        if (isReady) tts.stop()
         finish()
     }
 
     fun release() {
-        tts.removeEventListener(listener)
+        if (isReady) tts.removeEventListener(listener)
         tts.release()
     }
 
@@ -87,5 +95,6 @@ class Narrator(context: Context) {
     private companion object {
         const val TAG = "Narrator"
         const val MAX_LINE_MS = 20_000L
+        const val INIT_WAIT_MS = 10_000L
     }
 }
