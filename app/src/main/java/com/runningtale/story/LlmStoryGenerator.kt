@@ -7,6 +7,8 @@ import com.runningtale.model.Interlude
 import com.runningtale.model.InterludeTrigger
 import com.runningtale.model.StorySkeleton
 import com.runningtale.model.TripState
+import android.util.Log
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
@@ -53,12 +55,12 @@ class LlmStoryGenerator(
         trip: TripState,
     ): Interlude {
         val interlude = withTimeoutOrNull(AppConfig.INTERLUDE_TIMEOUT_MS) {
-            runCatching {
+            attempt {
                 parser.parseInterlude(
                     llm.complete(prompts.systemPrompt, prompts.interludePrompt(skeleton, storySoFar, trigger, trip)),
                     trigger,
                 ).takeIf { safety.isSafe(it.lines) }
-            }.getOrNull()
+            }
         } ?: Interlude(trigger, FallbackLines.interlude(trigger))
         return safety.personalize(interlude, childName)
     }
@@ -72,9 +74,24 @@ class LlmStoryGenerator(
     private suspend fun <T> retryOnce(timeoutMs: Long, block: suspend () -> T?): T? =
         withTimeoutOrNull(timeoutMs) {
             repeat(2) {
-                val result = runCatching { block() }.getOrNull()
+                val result = attempt { block() }
                 if (result != null) return@withTimeoutOrNull result
             }
             null
         }
+
+    /** 실패하면 null. 단 코루틴 취소는 삼키지 않고 그대로 전달 (runCatching은 취소까지 삼킴) */
+    private suspend fun <T> attempt(block: suspend () -> T?): T? =
+        try {
+            block()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "생성 실패, 대체 사용", e)
+            null
+        }
+
+    private companion object {
+        const val TAG = "LlmStoryGenerator"
+    }
 }
