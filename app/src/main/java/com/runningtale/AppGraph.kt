@@ -35,7 +35,7 @@ class AppGraph(context: Context) {
 
     private val generator: StoryGenerator =
         if (AppConfig.isDemoMode) {
-            DemoStoryGenerator(safety)
+            DemoStoryGenerator(context.assets, StoryParser(), safety)
         } else {
             LlmStoryGenerator(NotConfiguredLlmClient(), PromptBuilder(), StoryParser(), safety)
         }

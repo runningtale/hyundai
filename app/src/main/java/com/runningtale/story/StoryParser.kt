@@ -6,6 +6,7 @@ import com.runningtale.model.Effect
 import com.runningtale.model.EffectType
 import com.runningtale.model.Interlude
 import com.runningtale.model.InterludeTrigger
+import com.runningtale.model.PlaceKind
 import com.runningtale.model.StoryCharacter
 import com.runningtale.model.StoryLine
 import com.runningtale.model.StorySkeleton
@@ -19,8 +20,29 @@ import org.json.JSONObject
  */
 class StoryParser {
 
-    fun parseSkeleton(json: String): StorySkeleton {
-        val o = JSONObject(stripCodeFence(json))
+    fun parseSkeleton(json: String): StorySkeleton = skeletonFrom(JSONObject(stripCodeFence(json)))
+
+    /**
+     * 데모 이야기 파일(assets/stories 폴더의 JSON) → DemoStory. 형식은 docs/03_모듈간_약속.md 3장 "데모 이야기 파일".
+     * 모르는 장소 종류, 모르는 끼어들기 키는 무시함
+     */
+    fun parseDemoStory(json: String): DemoStory {
+        val o = JSONObject(json)
+        val interludes = o.optJSONObject("interludes")
+        return DemoStory(
+            id = o.optString("id"),
+            places = o.optJSONArray("places").mapStrings()
+                .mapNotNull { name -> PlaceKind.entries.firstOrNull { it.name == name } }
+                .toSet(),
+            skeleton = skeletonFrom(o.getJSONObject("skeleton")),
+            chapters = o.getJSONArray("chapters").mapObjects(::chapterFrom),
+            interludes = InterludeTrigger.entries
+                .mapNotNull { t -> interludes?.optJSONArray(t.jsonName)?.let { t to linesFrom(it).take(3) } }
+                .toMap(),
+        )
+    }
+
+    private fun skeletonFrom(o: JSONObject): StorySkeleton {
         return StorySkeleton(
             title = o.getString("title"),
             world = o.optString("world"),

@@ -13,7 +13,7 @@ import com.runningtale.model.Voice
  * 생성이 늦거나 실패했을 때 쓰는 문장과 기본 이야기.
  * `{주인공}`은 SafetyFilter.personalize에서 치환.
  *
- * TODO(담당 4): 기본 이야기를 assets/stories 폴더의 JSON 파일로 옮기고 3편으로 늘리기
+ * 데모 이야기는 assets/stories 폴더에서 읽음 (DemoStoryGenerator). 여기 기본 이야기는 그 파일이 하나도 없을 때만 쓰임
  */
 object FallbackLines {
 

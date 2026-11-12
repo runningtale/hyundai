@@ -1,0 +1,57 @@
+{
+  "id": "sample",
+  "places": [],
+  "skeleton": {
+    "title": "{주인공}의 바람 마을 여행",
+    "world": "바람이 노래하는 하늘 길",
+    "characters": [
+      {"name": "{주인공}", "voice": "haeun", "role": "주인공"},
+      {"name": "통통이", "voice": "eunwoo", "role": "길잡이 구름"}
+    ],
+    "ending_place": "따뜻한 쉼터 마을",
+    "chapter_plan": ["구름 마을 출발", "바람 행성", "쉼터 마을 도착"],
+    "first_chapter": {
+      "index": 1,
+      "title": "구름 마을 출발",
+      "lines": [
+        {"speaker": "narrator", "text": "구름 마을에 아침이 밝았어요."},
+        {"speaker": "통통이", "text": "{주인공}, 오늘은 멀리 가 볼까?"},
+        {"speaker": "narrator", "text": "{주인공}은 통통이 위에 폴짝 올라탔어요."}
+      ],
+      "summary": "주인공과 길잡이 구름 통통이가 구름 마을을 떠났다.",
+      "is_final": false
+    }
+  },
+  "chapters": [
+    {
+      "index": 2,
+      "title": "바람 행성",
+      "lines": [
+        {"speaker": "narrator", "text": "휘이잉, 바람 행성에 도착했어요."},
+        {"speaker": "통통이", "text": "꽉 잡아! 바람이 분다!", "effect": {"type": "fan", "level": 1, "duration_sec": 40}},
+        {"speaker": "narrator", "text": "{주인공}의 머리카락이 살랑살랑 흔들려요."}
+      ],
+      "summary": "바람 행성을 지났다.",
+      "is_final": false
+    },
+    {
+      "index": 3,
+      "title": "쉼터 마을 도착",
+      "lines": [
+        {"speaker": "narrator", "text": "저기 따뜻한 불빛이 보여요.", "effect": {"type": "reading_light", "level": 1, "duration_sec": 20}},
+        {"speaker": "통통이", "text": "다 왔어, {주인공}! 정말 멋진 여행이었어."},
+        {"speaker": "narrator", "text": "오늘의 모험은 여기까지예요."}
+      ],
+      "summary": "쉼터 마을에 도착했다.",
+      "is_final": true
+    }
+  ],
+  "interludes": {
+    "tunnel": [{"speaker": "narrator", "text": "와, 반짝이는 동굴에 들어왔어요!"}],
+    "toll": [{"speaker": "narrator", "text": "커다란 성문이 활짝 열렸어요."}],
+    "rest_area": [{"speaker": "narrator", "text": "쉬어 가는 마을이 보여요."}],
+    "rain_start": [{"speaker": "narrator", "text": "어? 하늘에서 빗방울이 톡톡!", "effect": {"type": "fan", "level": 1, "duration_sec": 20}}],
+    "rain_stop": [{"speaker": "narrator", "text": "비가 그치고 햇살이 살짝 비쳐요."}],
+    "night_fall": [{"speaker": "narrator", "text": "하늘에 별이 하나둘 떠올라요."}]
+  }
+}
