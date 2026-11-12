@@ -18,8 +18,12 @@ object AppConfig {
     /** 터널 등 예고 이벤트를 미리 생성하기 시작하는 거리 (3층) */
     const val ROAD_EVENT_PREPARE_M = 1000
 
-    /** 이 거리 이하가 되면 진입으로 보고 끼어들기 재생 */
-    const val ROAD_EVENT_ENTER_M = 50
+    /**
+     * 이 거리 이하가 되면 진입으로 보고 끼어들기 재생.
+     * 내비 정보를 5초마다 받으므로 시속 100km(5초에 약 140m)에서도 놓치지 않도록 넉넉히 잡음.
+     * 지금 문장을 끝까지 읽은 뒤 재생되므로 실제 진입 시점과 비슷해짐 [가정: 실차에서 조정]
+     */
+    const val ROAD_EVENT_ENTER_M = 300
 
     /** 예고 없는 이벤트의 끼어들기를 기다리는 최대 시간. 넘으면 범용 문장 */
     const val INTERLUDE_TIMEOUT_MS = 5_000L
