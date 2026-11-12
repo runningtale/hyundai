@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- LLM API 호출 (HTTPS) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Pleos 차량: 읽기 CAR_*, 제어 CONTROL_CAR_* -->
+    <uses-permission android:name="pleos.car.permission.CAR_LIGHTS" />
+    <uses-permission android:name="pleos.car.permission.CONTROL_CAR_LIGHTS" />
+    <uses-permission android:name="pleos.car.permission.CAR_CLIMATE" />
+    <uses-permission android:name="pleos.car.permission.CONTROL_CAR_CLIMATE" />
+    <uses-permission android:name="pleos.car.permission.CAR_SEATS" />
+
+    <!-- Pleos 내비, TTS -->
+    <uses-permission android:name="pleos.car.permission.NAVI_ROUTE" />
+    <uses-permission android:name="pleos.car.permission.TTS_SERVICE" />
+
+    <!-- 화면 없는 오디오 앱: 차 기본 미디어 화면에 나타남 -->
+    <application
+        android:name=".RunningTaleApp"
+        android:appCategory="audio"
+        android:icon="@android:drawable/ic_media_play"
+        android:label="@string/app_name">
+
+        <meta-data
+            android:name="com.android.automotive"
+            android:resource="@xml/automotive_app_desc" />
+
+        <service
+            android:name=".playback.StoryMediaService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.media.browse.MediaBrowserService" />
+            </intent-filter>
+        </service>
+    </application>
+</manifest>
