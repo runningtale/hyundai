@@ -44,6 +44,8 @@ class NaviGateway(
 
     private val listener = object : NaviHelperEventListener {
         override fun onDestinationInfo(destinationInfo: DestinationInfo) {
+            // 경로 안내가 없으면 빈 이름과 0초가 옴 (에뮬레이터 확인). 이걸 그대로 넘기면 이미 알던 목적지를 지우므로 건너뜀
+            if (destinationInfo.name.isBlank()) return
             _events.tryEmit(DriveEvent.DestinationUpdated(destinationInfo.name, destinationInfo.remainTime))
         }
 
