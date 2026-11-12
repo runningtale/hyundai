@@ -12,6 +12,7 @@ import com.runningtale.model.StoryLine
 import com.runningtale.model.StorySkeleton
 import com.runningtale.model.TimeOfDay
 import com.runningtale.model.TripState
+import com.runningtale.model.Voice
 import com.runningtale.story.FallbackLines
 import com.runningtale.story.SafetyFilter
 import com.runningtale.story.StoryGenerator
@@ -63,6 +64,9 @@ class StoryDirector(
 
     private var playJob: Job? = null
     private var nextChapterJob: Job? = null
+    private var storyStarted = false
+
+    /** 장 하나를 기다리는 동안 이음 문장은 한 번만. 새 장이 들어오면 다시 false */
     private var bridged = false
 
     val isPlaying: Boolean get() = playJob?.isActive == true
@@ -73,8 +77,27 @@ class StoryDirector(
 
     fun play() {
         if (isPlaying) return
-        if (skeleton == null && mainQueue.isEmpty()) startStory()
+        if (arrived && finalQueued) reset() // 도착 뒤 다시 재생하면 새 이야기
+        if (!storyStarted) {
+            storyStarted = true
+            startStory()
+        }
         playJob = scope.launch { playLoop() }
+    }
+
+    private fun reset() {
+        nextChapterJob?.cancel()
+        prepared.values.forEach { it.cancel() }
+        prepared.clear()
+        mainQueue.clear()
+        interludeQueue.clear()
+        storySoFar.clear()
+        skeleton = null
+        chapterIndex = 1
+        finalQueued = false
+        arrived = false
+        storyStarted = false
+        bridged = false
     }
 
     fun pause() {
@@ -100,17 +123,16 @@ class StoryDirector(
                 waitForMore()
                 continue
             }
-            bridged = false
             line.effect?.let { effects.apply(it, child.seat, trip) }
-            narrator.speak(line.text, skeleton?.voiceOf(line.speaker) ?: com.runningtale.model.Voice.NARRATOR)
+            narrator.speak(line.text, skeleton?.voiceOf(line.speaker) ?: Voice.NARRATOR)
             maybeRequestNextChapter()
         }
         effects.restoreAll()
     }
 
-    /** 다음 장이 아직 안 왔으면 이음 문장으로 한 번 시간을 벌고 기다림 */
+    /** 다음 장이 아직 안 왔으면 이음 문장으로 한 번 시간을 벌고 기다림. 결말 뒤에는 도착까지 조용히 */
     private suspend fun waitForMore() {
-        if (!bridged && skeleton != null) {
+        if (!bridged && skeleton != null && !finalQueued) {
             bridged = true
             mainQueue.addAll(FallbackLines.bridge.map { it.withName() })
         } else {
@@ -135,6 +157,7 @@ class StoryDirector(
 
     private fun appendChapter(chapter: Chapter) {
         chapterIndex = chapter.index
+        bridged = false
         mainQueue.addAll(chapter.lines)
         storySoFar.append(chapter.summary).append(' ')
         if (chapter.isFinal) finalQueued = true
@@ -162,6 +185,7 @@ class StoryDirector(
                     surprise(if (event.raining) InterludeTrigger.RAIN_START else InterludeTrigger.RAIN_STOP)
                 }
             }
+            // TODO(담당 3): 해 질 녘에 전조등이 켜지면 NIGHT_FALL 끼어들기 (터널 진입과 구별 필요)
             is DriveEvent.HeadlightChanged -> trip = trip.copy(isHeadlightOn = event.on, timeOfDay = timeOfDay(event.on))
             is DriveEvent.RoadEventAhead -> roadEvent(event)
             is DriveEvent.Arrived -> {
@@ -194,7 +218,10 @@ class StoryDirector(
         }
     }
 
-    /** 예고 없는 이벤트: 즉시 요청, 늦으면 범용 문장 (generator 안에서 처리) */
+    /**
+     * 예고 없는 이벤트: 즉시 요청, 늦으면 범용 문장 (generator 안에서 처리)
+     * TODO(담당 3): 문서(02 3-4절)대로 이벤트에 붙는 효과는 LLM 응답 전에 바로 실행 (예: 비 시작 → 풍량)
+     */
     private fun surprise(trigger: InterludeTrigger) {
         val s = skeleton ?: return
         scope.launch {
