@@ -1,0 +1,63 @@
+# 팀 작업 규칙
+
+이 저장소는 공모전 심사용으로 제출됩니다. 심사는 **블라인드**라서 이름, 연락처, 소속이 저장소 어디에도 보이면 안 됩니다. 아래 규칙은 모두 지켜 주세요.
+
+## 1. 커밋 작성자 (블라인드, 필수)
+
+처음 클론한 뒤 **이 저장소 안에서** 한 번만 실행합니다. 전역 설정(`--global`)은 바꾸지 않습니다.
+
+```bash
+git config user.name "<GitHub 계정명>"
+git config user.email "<GitHub noreply 이메일>"
+```
+
+- noreply 이메일은 GitHub → Settings → Emails → "Keep my email addresses private"를 켜면 나오는 `숫자+계정명@users.noreply.github.com` 주소입니다
+- 실명, 학교·회사 메일, 개인 메일 주소로 커밋하지 않습니다
+- 커밋 전에 확인: `git config user.name && git config user.email`
+- 이미 실명으로 커밋했다면 push하기 전에 팀에 알리고 고칩니다 (push 후에는 기록 수정이 어렵습니다)
+
+## 2. 커밋 메시지
+
+- 형식: `종류(범위): 한 줄 요약`
+  - 종류: `feat` 기능, `fix` 버그, `docs` 문서, `build` 빌드 설정, `chore` 기타 설정, `refactor` 구조 변경, `test` 테스트
+  - 범위: `story`, `vehicle`, `navi`, `playback`, `app`, `docs` 등
+  - 예: `feat(vehicle): 독서등 효과 실행과 원래 값 복귀`
+- 한 커밋에는 한 가지 변경만 담고, 작게 자주 커밋합니다
+- 본문에는 무엇을 왜 바꿨는지 짧게 적습니다
+- **커밋 메시지와 PR에 AI 도구 표기(예: Co-Authored-By, Generated with ...)를 넣지 않습니다.** 공모전에서 생성형 AI 사용은 허용되지만, 저장소 기록은 팀 작업물로 관리합니다
+- 커밋 메시지, 코드 주석, 문서에 실명을 쓰지 않습니다
+
+## 3. 브랜치
+
+- `master`는 항상 빌드가 되는 상태로 유지합니다
+- 작업은 각자 브랜치에서: `담당/작업` 형식 (예: `story/prompt`, `vehicle/effects`)
+- 합칠 때는 PR을 열고 다른 팀원 1명이 확인합니다
+- 강제 push(`--force`)는 하지 않습니다. 꼭 필요하면 팀에 먼저 알리고 `--force-with-lease`를 씁니다
+
+## 4. 비밀 정보
+
+- LLM API 키는 `local.properties`에만 넣습니다 (`.gitignore`에 포함됨)
+  ```properties
+  LLM_API_KEY=여기에_키
+  ```
+- 키를 코드, 문서, 커밋 메시지, 이슈에 붙여 넣지 않습니다
+- 제출용 APK에는 키를 넣지 않습니다. 키가 없으면 앱은 데모 모드(미리 만든 이야기)로 동작합니다
+- 실수로 키를 커밋했다면 그 키는 즉시 폐기하고 새로 발급합니다
+
+## 5. 저작권
+
+- 뉴스 기사 원문, 남의 이미지·음원을 저장소에 넣지 않습니다. 근거가 필요하면 출처 링크와 수치만 적습니다
+- 오픈소스를 쓰면 라이선스를 지키고 `README.md`에 출처를 적습니다
+- 효과음, 배경음은 직접 만들었거나 상업적 이용이 허용된 것만 씁니다
+
+## 6. 코드
+
+- 언어: Kotlin, minSdk 28, compileSdk 34
+- 모듈 간 연결은 `docs/03_모듈간_약속.md`의 형식과 인터페이스를 따릅니다. 바꿔야 하면 문서를 먼저 고치고 팀에 알립니다
+- 차량 제어 코드는 `vehicle/EffectController.kt`의 안전 규칙(운전석 불변, 상한, 원래 값 복귀)을 거쳐야 합니다
+- 주행 중 화면 조작을 요구하는 기능은 만들지 않습니다
+
+## 7. APK 제출
+
+- 위치: `apk/팀명_앱이름_release.apk` (release 빌드, 실행 가능해야 함)
+- 용량이 크면 GitHub Releases에 올리고 `README.md`에 링크를 적습니다
