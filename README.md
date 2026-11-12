@@ -30,7 +30,7 @@
 
 1. 저장소를 받습니다. 경로에 한글이 있으면 빌드가 실패할 수 있어 영문 경로를 권장합니다.
    ```bash
-   git clone https://github.com/kasangyong/hyundai.git C:/dev/hyundai
+   git clone https://github.com/runningtale/hyundai.git C:/dev/hyundai
    ```
 2. (선택) 실제 이야기 생성을 쓰려면 `local.properties`에 LLM API 키를 넣습니다. 없으면 데모 모드로 동작합니다.
    ```properties
