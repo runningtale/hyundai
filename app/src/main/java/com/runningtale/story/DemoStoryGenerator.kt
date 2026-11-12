@@ -56,7 +56,10 @@ class DemoStoryGenerator(
     ): Chapter {
         val chapters = story?.chapters?.takeIf { it.isNotEmpty() } ?: FallbackLines.defaultChapters
         val chapter = if (isFinal) chapters.last() else chapters.getOrElse(index - 2) { chapters.last() }
-        return safety.personalize(chapter.copy(index = index), childName)
+        // 결말 여부는 파일 값이 아니라 위치로 정함. 파일에 is_final이 빠지거나 잘못 들어가도
+        // 결말 반복(도착 후 같은 장을 계속 요청)이나 이른 종료가 생기지 않게
+        val final = isFinal || chapter === chapters.last()
+        return safety.personalize(chapter.copy(index = index, isFinal = final), childName)
     }
 
     override suspend fun interlude(
