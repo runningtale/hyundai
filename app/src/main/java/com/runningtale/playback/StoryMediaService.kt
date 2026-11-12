@@ -11,6 +11,7 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.media.MediaBrowserServiceCompat
+import com.runningtale.AppGraph
 import com.runningtale.RunningTaleApp
 
 /**
@@ -28,7 +29,8 @@ class StoryMediaService : MediaBrowserServiceCompat() {
     private lateinit var audioManager: AudioManager
     private var resumeOnFocusGain = false
 
-    private val graph get() = (application as RunningTaleApp).graph
+    private val app get() = application as RunningTaleApp
+    private lateinit var graph: AppGraph
     private val director get() = graph.director
 
     private val focusRequest by lazy {
@@ -46,7 +48,10 @@ class StoryMediaService : MediaBrowserServiceCompat() {
     override fun onCreate() {
         super.onCreate()
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        graph.start()
+        graph = AppGraph(applicationContext).also {
+            app.graph = it
+            it.start()
+        }
 
         session = MediaSessionCompat(this, TAG).apply {
             setCallback(callback)
@@ -137,6 +142,7 @@ class StoryMediaService : MediaBrowserServiceCompat() {
         audioManager.abandonAudioFocusRequest(focusRequest)
         session.release()
         graph.stop()
+        app.graph = null
         super.onDestroy()
     }
 

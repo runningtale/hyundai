@@ -25,7 +25,10 @@ import com.runningtale.model.InterludeTrigger
 class DebugEventReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        val graph = (context.applicationContext as RunningTaleApp).graph
+        val graph = (context.applicationContext as RunningTaleApp).graph ?: run {
+            Log.w(TAG, "앱이 아직 실행 전. 미디어 화면에서 달리는 동화를 먼저 여세요")
+            return
+        }
         val event = parse(intent) ?: run {
             Log.w(TAG, "알 수 없는 type: ${intent.getStringExtra("type")}")
             return

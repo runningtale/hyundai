@@ -21,7 +21,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
 
-/** 객체 연결 (수동 DI). 앱 프로세스에 하나. */
+/** 객체 연결 (수동 DI). StoryMediaService 하나의 생명주기 동안만 존재. */
 class AppGraph(context: Context) {
 
     val scope = MainScope()
@@ -68,6 +68,7 @@ class AppGraph(context: Context) {
     fun stop() {
         if (!started) return
         started = false
+        // TODO(담당 2): restoreAll의 복귀 명령은 비동기라 바로 release하면 끊길 수 있음. 복귀 완료 확인 후 release
         effects.restoreAll()
         vehicleGateway.stop()
         naviGateway.stop()
