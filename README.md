@@ -44,14 +44,21 @@
 
 ### 시연: 도로 이벤트 넣기 (debug 빌드)
 
-모의 주행은 앱에서 시작할 수 없어서 adb로 이벤트를 넣습니다.
+모의 주행은 앱에서 시작할 수 없어서 adb로 이벤트를 넣습니다. 목적지를 **재생 전에** 넣어야 뼈대에 목적지가 반영됩니다.
 
 ```bash
 R="-n com.runningtale/.debug.DebugEventReceiver -a com.runningtale.DEBUG_EVENT"
-adb shell am broadcast $R --es type destination --es name "강릉 경포해변" --ei remain 9000
+
+# 1) 미디어 화면에서 "달리는 동화"를 한 번 열어 앱을 실행한 뒤 (아직 재생은 누르지 않음)
+#    공백이 있는 값은 작은따옴표를 큰따옴표로 한 번 더 감쌈 (adb shell이 공백에서 나누기 때문)
+adb shell am broadcast $R --es type destination --es name "'강릉 경포해변'" --ei remain 9000
+
+# 2) 미디어 화면에서 "출발하며 듣기" 재생
+
+# 3) 주행 중 이벤트
 adb shell am broadcast $R --es type gear --es value D
-adb shell am broadcast $R --es type tunnel --ei distance 800   # 미리 생성
-adb shell am broadcast $R --es type tunnel --ei distance 30    # 진입 → 끼어들기
+adb shell am broadcast $R --es type tunnel --ei distance 800   # 1km 안: 미리 생성
+adb shell am broadcast $R --es type tunnel --ei distance 100   # 300m 안: 진입 → 끼어들기
 adb shell am broadcast $R --es type rain --ez on true
 adb shell am broadcast $R --es type arrived
 ```

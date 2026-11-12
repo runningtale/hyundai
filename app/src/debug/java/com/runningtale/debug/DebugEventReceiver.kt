@@ -18,7 +18,7 @@ import com.runningtale.model.InterludeTrigger
  *   --es type tunnel|toll|rest_area   --ei distance <m>
  *   --es type rain        --ez on true|false
  *   --es type headlight   --ez on true|false
- *   --es type destination --es name "강릉 경포해변" --ei remain <초>
+ *   --es type destination --es name "'강릉 경포해변'" --ei remain <초>   (공백 있는 값은 따옴표 두 겹)
  *   --es type gear        --es value D|P
  *   --es type arrived
  */
