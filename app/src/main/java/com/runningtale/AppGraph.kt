@@ -15,6 +15,7 @@ import com.runningtale.story.StoryGenerator
 import com.runningtale.story.StoryParser
 import com.runningtale.vehicle.EffectController
 import com.runningtale.vehicle.VehicleGateway
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -54,13 +55,14 @@ class AppGraph(context: Context) {
     fun start() {
         if (started) return
         started = true
-        vehicleGateway.start()
-        naviGateway.start()
         narrator.start()
-        // Vehicle.initialize()는 연결 콜백이 없어 잠시 뒤 공조 상태를 읽음
-        // TODO(담당 2): 연결 완료를 확인하는 방법으로 교체
-        scope.launch {
-            delay(2_000)
+        naviGateway.start()
+        // 차량 리스너 등록은 에뮬레이터에서 10초 넘게 걸려 메인 스레드에서 하면 서비스 시작이 막힘 → 백그라운드에서
+        scope.launch(Dispatchers.IO) {
+            vehicleGateway.start()
+            // Vehicle.initialize()는 연결 콜백이 없어 등록 뒤 공조 상태를 읽음
+            // TODO(담당 2): 연결 완료를 확인하는 방법으로 교체
+            delay(1_000)
             effects.start()
         }
     }
