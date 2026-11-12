@@ -8,6 +8,7 @@ import com.runningtale.model.DriveEvent
 import com.runningtale.model.Gear
 import com.runningtale.model.Interlude
 import com.runningtale.model.InterludeTrigger
+import com.runningtale.model.PlaceKind
 import com.runningtale.model.StoryLine
 import com.runningtale.model.StorySkeleton
 import com.runningtale.model.TimeOfDay
@@ -23,6 +24,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -51,13 +54,26 @@ class StoryDirector(
     var trip = TripState()
         private set
 
+    private val _nowPlaying = MutableStateFlow(NowPlaying())
+
+    /** 재생 카드 내용. 장의 첫 문장을 읽기 시작할 때 바뀜 */
+    val nowPlaying: StateFlow<NowPlaying> = _nowPlaying
+
+    private val _destinationLabel = MutableStateFlow<String?>(null)
+
+    /** 목록 부제에 보일 목적지 이름. 분류가 BLOCKED면 null (병원, 장례식장 등은 화면에도 쓰지 않음) */
+    val destinationLabel: StateFlow<String?> = _destinationLabel
+
     private var skeleton: StorySkeleton? = null
     private val storySoFar = StringBuilder()
     private var chapterIndex = 1
     private var finalQueued = false
     private var arrived = false
 
-    private val mainQueue = ArrayDeque<StoryLine>()
+    /** 본 이야기 줄. 장의 첫 줄에는 그 장을 달아 두어 읽기 시작할 때 재생 카드를 바꿈 */
+    private data class Queued(val line: StoryLine, val chapterStart: Chapter? = null)
+
+    private val mainQueue = ArrayDeque<Queued>()
     private val interludeQueue = ArrayDeque<StoryLine>()
     private val prepared = mutableMapOf<InterludeTrigger, Deferred<Interlude>>()
     private val lastEnteredAt = mutableMapOf<InterludeTrigger, Long>()
@@ -98,6 +114,7 @@ class StoryDirector(
         arrived = false
         storyStarted = false
         bridged = false
+        _nowPlaying.value = NowPlaying()
     }
 
     fun pause() {
@@ -107,7 +124,7 @@ class StoryDirector(
     }
 
     private fun startStory() {
-        mainQueue.addAll(FallbackLines.opening.map { it.withName() })
+        mainQueue.addAll(FallbackLines.opening.map { Queued(it.withName()) })
         scope.launch {
             val s = generator.createSkeleton(child, trip)
             skeleton = s
@@ -117,12 +134,17 @@ class StoryDirector(
 
     private suspend fun playLoop() {
         while (scope.isActive) {
-            val line = interludeQueue.removeFirstOrNull() ?: mainQueue.removeFirstOrNull()
-            if (line == null) {
-                if (arrived && finalQueued) break
+            val queued = interludeQueue.removeFirstOrNull()?.let { Queued(it) } ?: mainQueue.removeFirstOrNull()
+            if (queued == null) {
+                if (arrived && finalQueued) {
+                    _nowPlaying.value = _nowPlaying.value.copy(finished = true)
+                    break
+                }
                 waitForMore()
                 continue
             }
+            queued.chapterStart?.let(::showChapter)
+            val line = queued.line
             line.effect?.let { effects.apply(it, child.seat, trip) }
             narrator.speak(line.text, skeleton?.voiceOf(line.speaker) ?: Voice.NARRATOR)
             maybeRequestNextChapter()
@@ -130,11 +152,19 @@ class StoryDirector(
         effects.restoreAll()
     }
 
+    private fun showChapter(chapter: Chapter) {
+        _nowPlaying.value = NowPlaying(
+            storyTitle = skeleton?.title?.replace(SafetyFilter.PLACEHOLDER, child.name),
+            chapterIndex = chapter.index,
+            chapterTitle = chapter.title,
+        )
+    }
+
     /** 다음 장이 아직 안 왔으면 이음 문장으로 한 번 시간을 벌고 기다림. 결말 뒤에는 도착까지 조용히 */
     private suspend fun waitForMore() {
         if (!bridged && skeleton != null && !finalQueued) {
             bridged = true
-            mainQueue.addAll(FallbackLines.bridge.map { it.withName() })
+            mainQueue.addAll(FallbackLines.bridge.map { Queued(it.withName()) })
         } else {
             delay(300)
         }
@@ -158,14 +188,14 @@ class StoryDirector(
     private fun appendChapter(chapter: Chapter) {
         chapterIndex = chapter.index
         bridged = false
-        mainQueue.addAll(chapter.lines)
+        mainQueue.addAll(chapter.lines.mapIndexed { i, line -> Queued(line, chapterStart = chapter.takeIf { i == 0 }) })
         storySoFar.append(chapter.summary).append(' ')
         if (chapter.isFinal) finalQueued = true
     }
 
     /** 한국어 TTS 대략 초당 5자 + 문장 사이 0.5초 [가정: 측정 후 조정] */
-    private fun estimatedRemainSec(lines: Collection<StoryLine>): Int =
-        lines.sumOf { it.text.length / 5 + 1 }
+    private fun estimatedRemainSec(lines: Collection<Queued>): Int =
+        lines.sumOf { it.line.text.length / 5 + 1 }
 
     // ---- 이벤트와 3층 ----
 
@@ -173,11 +203,14 @@ class StoryDirector(
         Log.d(TAG, "event $event")
         when (event) {
             is DriveEvent.GearChanged -> trip = trip.copy(isMoving = event.gear == Gear.DRIVE)
-            is DriveEvent.DestinationUpdated -> trip = trip.copy(
-                destinationName = event.name,
-                placeKind = safety.classifyPlace(event.name),
-                remainSec = event.remainSec,
-            )
+            is DriveEvent.DestinationUpdated -> {
+                trip = trip.copy(
+                    destinationName = event.name,
+                    placeKind = safety.classifyPlace(event.name),
+                    remainSec = event.remainSec,
+                )
+                _destinationLabel.value = event.name.takeIf { trip.placeKind != PlaceKind.BLOCKED }
+            }
             is DriveEvent.RainChanged -> {
                 val changed = trip.isRaining != event.raining
                 trip = trip.copy(isRaining = event.raining)

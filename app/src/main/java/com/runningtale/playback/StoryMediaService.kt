@@ -1,6 +1,8 @@
 package com.runningtale.playback
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
@@ -11,9 +13,12 @@ import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import androidx.core.content.ContextCompat
 import androidx.media.MediaBrowserServiceCompat
 import com.runningtale.AppGraph
+import com.runningtale.R
 import com.runningtale.RunningTaleApp
+import kotlinx.coroutines.launch
 
 /**
  * 차 기본 미디어 화면과 핸들 버튼으로 조작하는 진입점 (담당 3).
@@ -57,15 +62,40 @@ class StoryMediaService : MediaBrowserServiceCompat() {
         // session에 먼저 대입한 뒤 setState 호출 (setState가 session을 씀)
         session = MediaSessionCompat(this, TAG)
         session.setCallback(callback)
-        session.setMetadata(
-            MediaMetadataCompat.Builder()
-                .putString(MediaMetadataCompat.METADATA_KEY_TITLE, TITLE)
-                .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, "이번 여정의 이야기")
-                .build(),
-        )
+        session.setMetadata(metadataOf(NowPlaying()))
         setState(PlaybackStateCompat.STATE_PAUSED)
         session.isActive = true
         sessionToken = session.sessionToken
+
+        // 장이 바뀌면 재생 카드, 목적지가 바뀌면 목록 부제 갱신
+        graph.scope.launch { director.nowPlaying.collect { session.setMetadata(metadataOf(it)) } }
+        graph.scope.launch { director.destinationLabel.collect { notifyChildrenChanged(TAB_ID) } }
+    }
+
+    /** 재생 카드: 제목 = 장 제목, 부제 = 이야기 제목, 그림 = 기본 그림 (장면 그림은 docs/07 4-3절, P1) */
+    private fun metadataOf(now: NowPlaying): MediaMetadataCompat {
+        val (title, subtitle) = when {
+            now.finished -> "도착했어요" to (now.storyTitle ?: APP_TITLE)
+            now.chapterTitle != null -> "${now.chapterIndex}장. ${now.chapterTitle}" to (now.storyTitle ?: APP_TITLE)
+            else -> APP_TITLE to DEFAULT_SUBTITLE
+        }
+        return MediaMetadataCompat.Builder()
+            .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
+            .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_TITLE, title)
+            .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, subtitle)
+            .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE, subtitle)
+            .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, art)
+            .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, art)
+            .build()
+    }
+
+    /** 벡터·PNG 모두 받도록 Drawable을 직접 그려 Bitmap으로 만듦 */
+    private val art: Bitmap by lazy {
+        val drawable = checkNotNull(ContextCompat.getDrawable(this, R.drawable.art_default))
+        Bitmap.createBitmap(ART_SIZE_PX, ART_SIZE_PX, Bitmap.Config.ARGB_8888).also {
+            drawable.setBounds(0, 0, ART_SIZE_PX, ART_SIZE_PX)
+            drawable.draw(Canvas(it))
+        }
     }
 
     override fun onGetRoot(clientPackageName: String, clientUid: Int, rootHints: Bundle?): BrowserRoot =
@@ -89,7 +119,8 @@ class StoryMediaService : MediaBrowserServiceCompat() {
                     MediaDescriptionCompat.Builder()
                         .setMediaId(START_ID)
                         .setTitle("출발하며 듣기")
-                        .setSubtitle("이번 여정이 이야기가 돼요")
+                        .setSubtitle(director.destinationLabel.value?.let { "$it 가는 길 이야기" } ?: DEFAULT_SUBTITLE)
+                        .setIconBitmap(art)
                         .build(),
                     MediaItem.FLAG_PLAYABLE,
                 ),
@@ -169,7 +200,9 @@ class StoryMediaService : MediaBrowserServiceCompat() {
 
     private companion object {
         const val TAG = "StoryMediaService"
-        const val TITLE = "달리는 동화"
+        const val APP_TITLE = "달리는 동화"
+        const val DEFAULT_SUBTITLE = "이번 여정이 이야기가 돼요"
+        const val ART_SIZE_PX = 512
         const val ROOT_ID = "root"
         const val TAB_ID = "stories"
         const val START_ID = "start"
