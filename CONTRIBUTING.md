@@ -4,17 +4,19 @@
 
 ## 1. 커밋 작성자 (블라인드, 필수)
 
+GitHub 계정명에는 실명이나 생년월일이 들어 있을 수 있어서, **모든 팀원이 같은 팀 이름으로 커밋**합니다.
 처음 클론한 뒤 **이 저장소 안에서** 한 번만 실행합니다. 전역 설정(`--global`)은 바꾸지 않습니다.
 
 ```bash
-git config user.name "<GitHub 계정명>"
-git config user.email "<GitHub noreply 이메일>"
+git config user.name "RunningTale"
+git config user.email "team@runningtale.invalid"
 ```
 
-- noreply 이메일은 GitHub → Settings → Emails → "Keep my email addresses private"를 켜면 나오는 `숫자+계정명@users.noreply.github.com` 주소입니다
-- 실명, 학교·회사 메일, 개인 메일 주소로 커밋하지 않습니다
 - 커밋 전에 확인: `git config user.name && git config user.email`
-- 이미 실명으로 커밋했다면 push하기 전에 팀에 알리고 고칩니다 (push 후에는 기록 수정이 어렵습니다)
+- 개인 계정명, 실명, 학교·회사 메일, 개인 메일로 커밋하지 않습니다
+- 실수로 개인 정보로 커밋했다면 push하기 전에 팀에 알리고 고칩니다 (push 후에는 기록 수정이 어렵습니다)
+- push는 각자 GitHub 계정으로 하지만, 커밋 기록에는 팀 이름만 남습니다
+- PR, 이슈, 브랜치 이름, 코드 주석에도 실명을 쓰지 않습니다. PR·이슈 화면에는 GitHub 계정명이 보이므로 심사용 계정을 초대하기 전에 한 번 점검합니다
 
 ## 2. 커밋 메시지
 
