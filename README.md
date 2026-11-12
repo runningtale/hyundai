@@ -103,6 +103,7 @@ app/src/debug/  시연용 이벤트 주입
 | [05_Pleos_SDK_메모](docs/05_Pleos_SDK_메모.md) | 확인한 API, 퍼미션, 주행 규제, 에뮬레이터 검증 결과 |
 | [06_역할분담_일정](docs/06_역할분담_일정.md) | 담당과 일정, 제출 전 점검 |
 | [07_고도화_계획](docs/07_고도화_계획.md) | 이야기 만드는 법, 소리, 4D 연출, 화면·디자인, 시스템 고도화와 우선순위 |
+| [proposals](docs/proposals/README.md) | 고도화 제안 올리는 법과 결정 규칙, 제안 목록 |
 
 팀 작업 규칙(커밋 작성자, 브랜치, API 키)은 [CONTRIBUTING.md](CONTRIBUTING.md)에 있습니다.
 

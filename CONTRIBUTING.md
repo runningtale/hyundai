@@ -63,3 +63,9 @@ git config user.email "team@runningtale.invalid"
 
 - 위치: `apk/팀명_앱이름_release.apk` (release 빌드, 실행 가능해야 함)
 - 용량이 크면 GitHub Releases에 올리고 `README.md`에 링크를 적습니다
+
+## 8. 고도화 제안
+
+- 고도화 아이디어는 누구나 `docs/proposals/`에 제안서로 올립니다 (`_template.md` 복사)
+- 정하는 방법과 기한은 [docs/proposals/README.md](docs/proposals/README.md)
+- 채택된 것은 `docs/07_고도화_계획.md` 표에 반영합니다
