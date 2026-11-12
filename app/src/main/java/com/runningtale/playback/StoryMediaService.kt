@@ -5,6 +5,7 @@ import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.os.Bundle
+import android.util.Log
 import android.support.v4.media.MediaBrowserCompat.MediaItem
 import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.MediaMetadataCompat
@@ -53,38 +54,58 @@ class StoryMediaService : MediaBrowserServiceCompat() {
             it.start()
         }
 
-        session = MediaSessionCompat(this, TAG).apply {
-            setCallback(callback)
-            setMetadata(
-                MediaMetadataCompat.Builder()
-                    .putString(MediaMetadataCompat.METADATA_KEY_TITLE, TITLE)
-                    .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, "이번 여정의 이야기")
-                    .build(),
-            )
-            setState(PlaybackStateCompat.STATE_PAUSED)
-            isActive = true
-        }
+        // session에 먼저 대입한 뒤 setState 호출 (setState가 session을 씀)
+        session = MediaSessionCompat(this, TAG)
+        session.setCallback(callback)
+        session.setMetadata(
+            MediaMetadataCompat.Builder()
+                .putString(MediaMetadataCompat.METADATA_KEY_TITLE, TITLE)
+                .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, "이번 여정의 이야기")
+                .build(),
+        )
+        setState(PlaybackStateCompat.STATE_PAUSED)
+        session.isActive = true
         sessionToken = session.sessionToken
     }
 
     override fun onGetRoot(clientPackageName: String, clientUid: Int, rootHints: Bundle?): BrowserRoot =
         BrowserRoot(ROOT_ID, null)
 
+    /**
+     * Pleos 미디어 앱은 루트의 자식을 "탭"으로 보여 줌.
+     * 그래서 루트 → 탭(이야기, BROWSABLE) → 재생 항목(출발하며 듣기, PLAYABLE) 2단으로 둠
+     */
     override fun onLoadChildren(parentId: String, result: Result<MutableList<MediaItem>>) {
-        val item = MediaItem(
-            MediaDescriptionCompat.Builder()
-                .setMediaId(START_ID)
-                .setTitle("출발하며 듣기")
-                .setSubtitle(TITLE)
-                .build(),
-            MediaItem.FLAG_PLAYABLE,
-        )
-        result.sendResult(if (parentId == ROOT_ID) mutableListOf(item) else mutableListOf())
+        Log.d(TAG, "onLoadChildren $parentId")
+        val items = when (parentId) {
+            ROOT_ID -> mutableListOf(
+                MediaItem(
+                    MediaDescriptionCompat.Builder().setMediaId(TAB_ID).setTitle("이야기").build(),
+                    MediaItem.FLAG_BROWSABLE,
+                ),
+            )
+            TAB_ID -> mutableListOf(
+                MediaItem(
+                    MediaDescriptionCompat.Builder()
+                        .setMediaId(START_ID)
+                        .setTitle("출발하며 듣기")
+                        .setSubtitle("이번 여정이 이야기가 돼요")
+                        .build(),
+                    MediaItem.FLAG_PLAYABLE,
+                ),
+            )
+            else -> mutableListOf()
+        }
+        result.sendResult(items)
     }
 
     private val callback = object : MediaSessionCompat.Callback() {
         override fun onPlay() {
-            if (audioManager.requestAudioFocus(focusRequest) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) return
+            Log.d(TAG, "onPlay")
+            if (audioManager.requestAudioFocus(focusRequest) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+                Log.w(TAG, "오디오 포커스 거부")
+                return
+            }
             director.play()
             setState(PlaybackStateCompat.STATE_PLAYING)
         }
@@ -150,6 +171,7 @@ class StoryMediaService : MediaBrowserServiceCompat() {
         const val TAG = "StoryMediaService"
         const val TITLE = "달리는 동화"
         const val ROOT_ID = "root"
+        const val TAB_ID = "stories"
         const val START_ID = "start"
     }
 }
