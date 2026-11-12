@@ -158,7 +158,7 @@ class StoryDirector(
         _nowPlaying.value = NowPlaying(
             storyTitle = skeleton?.title?.replace(SafetyFilter.PLACEHOLDER, child.name),
             chapterIndex = chapter.index,
-            chapterTitle = chapter.title,
+            chapterTitle = chapter.title.replace(SafetyFilter.PLACEHOLDER, child.name),
         )
     }
 

@@ -89,11 +89,17 @@ class StoryMediaService : MediaBrowserServiceCompat() {
             .build()
     }
 
+    /** 재생 카드 그림. 세션 메타데이터는 프레임워크가 크기를 줄여 넘김 */
+    private val art: Bitmap by lazy { render(R.drawable.art_default, ART_SIZE_PX) }
+
+    /** 목록 항목 그림. onLoadChildren 결과는 binder로 그대로 넘어가므로 작게 (TransactionTooLarge 방지) */
+    private val listIcon: Bitmap by lazy { render(R.drawable.art_default, LIST_ICON_SIZE_PX) }
+
     /** 벡터·PNG 모두 받도록 Drawable을 직접 그려 Bitmap으로 만듦 */
-    private val art: Bitmap by lazy {
-        val drawable = checkNotNull(ContextCompat.getDrawable(this, R.drawable.art_default))
-        Bitmap.createBitmap(ART_SIZE_PX, ART_SIZE_PX, Bitmap.Config.ARGB_8888).also {
-            drawable.setBounds(0, 0, ART_SIZE_PX, ART_SIZE_PX)
+    private fun render(resId: Int, sizePx: Int): Bitmap {
+        val drawable = checkNotNull(ContextCompat.getDrawable(this, resId))
+        return Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888).also {
+            drawable.setBounds(0, 0, sizePx, sizePx)
             drawable.draw(Canvas(it))
         }
     }
@@ -120,7 +126,7 @@ class StoryMediaService : MediaBrowserServiceCompat() {
                         .setMediaId(START_ID)
                         .setTitle("출발하며 듣기")
                         .setSubtitle(director.destinationLabel.value?.let { "$it 가는 길 이야기" } ?: DEFAULT_SUBTITLE)
-                        .setIconBitmap(art)
+                        .setIconBitmap(listIcon)
                         .build(),
                     MediaItem.FLAG_PLAYABLE,
                 ),
@@ -203,6 +209,7 @@ class StoryMediaService : MediaBrowserServiceCompat() {
         const val APP_TITLE = "달리는 동화"
         const val DEFAULT_SUBTITLE = "이번 여정이 이야기가 돼요"
         const val ART_SIZE_PX = 512
+        const val LIST_ICON_SIZE_PX = 128
         const val ROOT_ID = "root"
         const val TAB_ID = "stories"
         const val START_ID = "start"
