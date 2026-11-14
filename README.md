@@ -12,7 +12,7 @@
   - 달리는 동안 다음 장을 한 장씩
   - 터널·요금소·비 같은 도로 이벤트에 맞춘 끼어들기
 - **4D 효과**: 아이 자리 독서등, 풍량, 등장인물별 목소리
-- **화면 없음**: 차 기본 미디어 화면과 핸들 버튼으로 재생·일시정지
+- **재생 화면 없음**: 차 기본 미디어 화면과 핸들 버튼으로 재생·일시정지. 앱 화면은 주차 중 아이 등록 하나 (미디어 화면 "⋯" > 설정)
 - **아이 정보 보호**: 아이 이름은 기기 밖으로 보내지 않음
 
 자세한 내용은 [docs/01_기획서.md](docs/01_기획서.md)를 보세요.
@@ -49,7 +49,8 @@
    adb shell am start -a android.car.intent.action.MEDIA_TEMPLATE \
      --es android.car.intent.extra.MEDIA_COMPONENT com.runningtale/.playback.StoryMediaService
    ```
-5. "이야기" 탭 → **출발하며 듣기**를 누릅니다. 앱은 자동 재생하지 않습니다.
+5. (선택) 미디어 화면 오른쪽 위 **⋯ > 설정**에서 아이 이름, 뒷좌석 자리(왼쪽/오른쪽), 바람·빛 효과를 등록합니다. 등록하지 않으면 기본값(하윤, 왼쪽)으로 들려줍니다. 기어가 D이면 설정 화면은 열리지 않습니다.
+6. "이야기" 탭 → **출발하며 듣기**를 누릅니다. 앱은 자동 재생하지 않습니다.
 
 ### 시연: 도로 이벤트 넣기 (debug 빌드)
 
@@ -69,7 +70,7 @@ adb shell input tap 1090 370
 adb shell am broadcast $R --es type gear --es value D
 adb shell am broadcast $R --es type tunnel --ei distance 800   # 1km 안: 미리 생성
 adb shell am broadcast $R --es type tunnel --ei distance 100   # 300m 안: 진입 → 끼어들기
-adb shell am broadcast $R --es type rain --ez on true
+adb shell am broadcast $R --es type rain --ez on true   # 또는 Virtual Console에서 와이퍼를 켜면 차량 신호로 들어감
 adb shell am broadcast $R --es type arrived
 ```
 
@@ -85,7 +86,8 @@ adb shell am broadcast $R --es type arrived
 ```
 app/src/main/java/com/runningtale/
 ├── model/      공통 데이터, 주행 이벤트
-├── config/     설정 상수, 시연용 아이 정보
+├── config/     설정 상수, 아이 등록 값 저장, 등록 전 기본값
+├── settings/   아이 등록 화면 (미디어 화면 ⋯ > 설정)
 ├── story/      이야기 생성 (프롬프트, LLM, 파싱, 안전 검사, 대체 문장)
 ├── vehicle/    차량 이벤트, 4D 효과와 안전 규칙
 ├── navi/       목적지, 남은 시간, 터널 예고

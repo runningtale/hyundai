@@ -9,7 +9,7 @@ import com.runningtale.model.StorySkeleton
 /**
  * 아이 안전 검사와 개인정보 처리 (기기 안에서만 동작).
  *
- * TODO(담당 1): 키워드 목록 보강, 이름 뒤 조사(이/가, 은/는) 받침 처리
+ * TODO(담당 1): 키워드 목록 보강
  */
 class SafetyFilter {
 
@@ -48,7 +48,7 @@ class SafetyFilter {
 
     private fun StoryLine.personalize(name: String) = copy(
         speaker = speaker.replace(PLACEHOLDER, name),
-        text = text.replace(PLACEHOLDER, name),
+        text = Josa.fill(text, PLACEHOLDER, name),
     )
 
     companion object {

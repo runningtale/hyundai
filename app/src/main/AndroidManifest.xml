@@ -19,10 +19,12 @@
     <uses-permission android:name="pleos.car.permission.NAVI_ROUTE" />
     <uses-permission android:name="pleos.car.permission.TTS_SERVICE" />
 
-    <!-- 화면 없는 오디오 앱: 차 기본 미디어 화면에 나타남 -->
+    <!-- 재생 화면 없는 오디오 앱: 차 기본 미디어 화면에 나타남. 앱 화면은 아이 등록 하나 -->
     <application
         android:name=".RunningTaleApp"
+        android:allowBackup="false"
         android:appCategory="audio"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name">
 
@@ -37,5 +39,18 @@
                 <action android:name="android.media.browse.MediaBrowserService" />
             </intent-filter>
         </service>
+
+        <!-- 아이 등록. 미디어 화면 "⋯" 메뉴의 앱 설정으로 열림. 기어가 D이면 화면이 스스로 닫힘 (SettingsActivity) -->
+        <activity
+            android:name=".settings.SettingsActivity"
+            android:exported="true"
+            android:label="@string/settings_title"
+            android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.APPLICATION_PREFERENCES" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
     </application>
 </manifest>

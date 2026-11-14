@@ -5,7 +5,7 @@ import com.runningtale.model.ChildProfile
 import com.runningtale.model.SeatPosition
 
 /**
- * 1차 시연용 아이 정보. 화면이 없으므로 여기서 정함 (2차에 음성 등록).
+ * 설정 화면에서 아이를 등록하기 전에 쓰는 기본값 (ChildStore). 나이, 카시트는 화면에 없어 항상 이 값.
  * 실제 사람 이름을 쓰지 않음.
  */
 object DemoPreset {

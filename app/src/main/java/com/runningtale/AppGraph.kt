@@ -2,7 +2,7 @@ package com.runningtale
 
 import android.content.Context
 import com.runningtale.config.AppConfig
-import com.runningtale.config.DemoPreset
+import com.runningtale.config.ChildStore
 import com.runningtale.navi.NaviGateway
 import com.runningtale.playback.Narrator
 import com.runningtale.playback.StoryDirector
@@ -29,7 +29,8 @@ class AppGraph(context: Context) {
 
     val vehicleGateway = VehicleGateway(context)
     val naviGateway = NaviGateway(context, scope)
-    val effects = EffectController(vehicleGateway.vehicle, scope)
+    private val childStore = ChildStore(context)
+    val effects = EffectController(vehicleGateway.vehicle, scope, childStore::isEffectEnabled)
     val narrator = Narrator(context)
     private val safety = SafetyFilter()
 
@@ -46,7 +47,7 @@ class AppGraph(context: Context) {
         narrator = narrator,
         effects = effects,
         safety = safety,
-        child = DemoPreset.child,
+        childSource = childStore::load,
         events = merge(vehicleGateway.events, naviGateway.events),
     )
 

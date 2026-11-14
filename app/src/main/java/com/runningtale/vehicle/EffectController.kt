@@ -27,12 +27,14 @@ import kotlinx.coroutines.launch
  * - 풍량: 공조 꺼짐이면 실행 안 함, +1단, 최대 60초, 끝나면 원래 값(AUTO 포함)으로
  * - 같은 종류가 실행 중이면 새 요청 무시
  * - 같은 종류는 마지막 실행 후 EFFECT_COOLDOWN_SEC 동안 다시 실행 안 함
+ * - 설정 화면에서 끈 효과는 실행 안 함 (실행할 때마다 확인)
  *
  * TODO(담당 2): 주행 규제(driving_regulation on) 상태에서 set 호출이 되는지 확인하고 결과를 docs/05에 기록
  */
 class EffectController(
     private val vehicle: Vehicle,
     private val scope: CoroutineScope,
+    private val isEnabled: (EffectType) -> Boolean,
 ) {
     private var fanArea: SeatArea? = null
     private var autoArea: SeatArea? = null
@@ -92,6 +94,10 @@ class EffectController(
 
     /** @return 실행했으면 true, 규칙에 걸리면 false */
     fun apply(effect: Effect, seat: SeatPosition, trip: TripState): Boolean {
+        if (!isEnabled(effect.type)) {
+            Log.i(TAG, "${effect.type} 꺼짐(설정), 건너뜀")
+            return false
+        }
         val now = SystemClock.elapsedRealtime()
         val last = lastStartedAt[effect.type]
         if (last != null && now - last < AppConfig.EFFECT_COOLDOWN_SEC * 1000L) {

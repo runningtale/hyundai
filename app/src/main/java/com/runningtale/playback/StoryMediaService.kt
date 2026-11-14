@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
 
 /**
  * 차 기본 미디어 화면과 핸들 버튼으로 조작하는 진입점 (담당 3).
- * 앱 전용 화면은 없음. Pleos 오디오 앱 요건: MediaSession, 핸들 미디어 키, 오디오 포커스, 자동 재생 금지.
+ * 재생 화면은 없고 주차 중 아이 등록 화면(SettingsActivity)만 있음. Pleos 오디오 앱 요건: MediaSession, 핸들 미디어 키, 오디오 포커스, 자동 재생 금지.
  *
  * TODO(담당 3):
  *  - 재생 중 포그라운드 서비스와 알림 (장시간 재생 시 종료 방지)
@@ -185,7 +185,7 @@ class StoryMediaService : MediaBrowserServiceCompat() {
             }
             AudioManager.AUDIOFOCUS_GAIN -> if (resumeOnFocusGain) {
                 resumeOnFocusGain = false
-                director.play()
+                director.resume()
                 setState(PlaybackStateCompat.STATE_PLAYING)
             }
         }

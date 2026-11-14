@@ -89,7 +89,7 @@ tts.stop(); tts.release()
 
 ## 5. 주행 규제와 오디오 앱 요건
 
-- 주행 중 사용(DO) 선언이 없는 앱은 주행 중 사용 불가
+- 주행 중 사용(DO) 선언이 없는 앱은 주행 중 사용 불가 (공식 문서). 단 에뮬레이터는 DO 선언 없는 액티비티를 D + 시속 30~40에서도 막지 않았음 (11/14) → 아이 등록 화면은 앱이 기어를 보고 직접 닫음
 - 오디오 앱: `android:appCategory="audio"`, MediaBrowserService/MediaSession 구현, 핸들 미디어 키 지원, 오디오 포커스 처리 필수, **자동 재생 금지**. Gleo 호출 등으로 `AUDIOFOCUS_LOSS_TRANSIENT`를 받으면 즉시 멈춤
 - 주행 중 동영상, 게임, 광고 금지
 - 한국은 "차량 설정"(`UX_RESTRICTIONS_NO_SETUP`)이 주행 중 금지. 앱의 공조·조명 제어가 해당되는지는 확인 필요
@@ -110,6 +110,10 @@ tts.stop(); tts.release()
 | 터널 미리 생성 → 진입 시 끼어들기 | 됨 | 이벤트 주입으로 확인 |
 | 비 시작·그침 끼어들기 | 됨 | |
 | 도착 시 효과 복귀, 다시 재생하면 새 이야기 | 됨 | |
+| 미디어 화면 "⋯" 메뉴의 앱 설정 | 됨 (11/14) | `APPLICATION_PREFERENCES` 액티비티가 있으면 "설정" 항목이 생김 |
+| DO 선언 없는 액티비티의 주행 중 차단 | 안 됨 (11/14) | D + 시속 40에서도 열린 채 유지. `dumpsys car_service` UXR은 `DO: true` |
+| 앱 사용자 | 10번 | `pm clear`는 `--user 10`을 붙여야 앱 데이터가 지워짐 |
+| 한글 입력 | 됨 | 차 키보드(`ai.umos.inputmethod`)에 두벌식 자판. adb `input text`는 한글 불가 |
 | 주행 규제 상태에서 낭독 | 됨 | `DO: true UxR: 80` 상태에서 확인 |
 | `cmd hmg_car_service ... driving_regulation` | 이 이미지에 없음 | Virtual Console의 D + ACCEL로 주행 상태를 만듦 |
 | adb 미디어 키(`KEYCODE_MEDIA_PLAY`) | 앱까지 안 감 | 앱은 사용자 10, adb 키는 다른 사용자 → 화면 탭으로 재생 |

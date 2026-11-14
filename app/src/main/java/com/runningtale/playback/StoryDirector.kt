@@ -17,6 +17,7 @@ import com.runningtale.model.TimeOfDay
 import com.runningtale.model.TripState
 import com.runningtale.model.Voice
 import com.runningtale.story.FallbackLines
+import com.runningtale.story.Josa
 import com.runningtale.story.SafetyFilter
 import com.runningtale.story.StoryGenerator
 import com.runningtale.vehicle.EffectController
@@ -50,7 +51,7 @@ class StoryDirector(
     private val narrator: Narrator,
     private val effects: EffectController,
     private val safety: SafetyFilter,
-    private val child: ChildProfile,
+    private val childSource: () -> ChildProfile,
     events: Flow<DriveEvent>,
 ) {
     var trip = TripState()
@@ -80,7 +81,11 @@ class StoryDirector(
     private val prepared = mutableMapOf<InterludeTrigger, Deferred<Interlude>>()
     private val lastEnteredAt = mutableMapOf<InterludeTrigger, Long>()
 
+    /** 지금 이야기의 아이 정보. 새 이야기를 시작할 때만 childSource에서 다시 읽음 (이야기 도중 호칭이 바뀌지 않게) */
+    private var child: ChildProfile = childSource()
+
     private var playJob: Job? = null
+    private var skeletonJob: Job? = null
     private var nextChapterJob: Job? = null
     private var storyStarted = false
 
@@ -95,15 +100,26 @@ class StoryDirector(
 
     fun play() {
         if (isPlaying) return
-        if (arrived && finalQueued) reset() // 도착 뒤 다시 재생하면 새 이야기
+        val latest = childSource()
+        // 도착 뒤 다시 재생하거나, 사용자가 ▶를 눌렀을 때 설정 화면에서 아이 정보가 바뀌어 있으면 새 이야기
+        // (내비 안내 뒤 자동 재개는 resume()이라 여기서 다시 시작하지 않음)
+        if ((arrived && finalQueued) || (storyStarted && latest != child)) reset()
         if (!storyStarted) {
+            child = latest
             storyStarted = true
             startStory()
         }
         playJob = scope.launch { playLoop() }
     }
 
+    /** 내비 안내, Gleo 등으로 잠깐 멈췄다가 이어 듣기. 설정 변경은 보지 않음 */
+    fun resume() {
+        if (isPlaying || !storyStarted) return
+        playJob = scope.launch { playLoop() }
+    }
+
     private fun reset() {
+        skeletonJob?.cancel()
         nextChapterJob?.cancel()
         prepared.values.forEach { it.cancel() }
         prepared.clear()
@@ -127,7 +143,7 @@ class StoryDirector(
 
     private fun startStory() {
         mainQueue.addAll(FallbackLines.opening.map { Queued(it.withName()) })
-        scope.launch {
+        skeletonJob = scope.launch {
             val s = generator.createSkeleton(child, trip)
             skeleton = s
             appendChapter(s.firstChapter)
@@ -156,9 +172,9 @@ class StoryDirector(
 
     private fun showChapter(chapter: Chapter) {
         _nowPlaying.value = NowPlaying(
-            storyTitle = skeleton?.title?.replace(SafetyFilter.PLACEHOLDER, child.name),
+            storyTitle = skeleton?.title?.let { Josa.fill(it, SafetyFilter.PLACEHOLDER, child.name) },
             chapterIndex = chapter.index,
-            chapterTitle = chapter.title.replace(SafetyFilter.PLACEHOLDER, child.name),
+            chapterTitle = Josa.fill(chapter.title, SafetyFilter.PLACEHOLDER, child.name),
         )
     }
 
@@ -278,7 +294,7 @@ class StoryDirector(
     }
 
     private fun StoryLine.withName(): StoryLine =
-        copy(text = text.replace(SafetyFilter.PLACEHOLDER, child.name))
+        copy(text = Josa.fill(text, SafetyFilter.PLACEHOLDER, child.name))
 
     private companion object {
         const val TAG = "StoryDirector"
