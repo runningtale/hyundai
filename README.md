@@ -78,7 +78,7 @@ adb shell am broadcast $R --es type arrived
 
 ## APK
 
-- 위치: [apk/](apk/) (`팀명_앱이름_release.apk`)
+- 위치: [apk/러닝테일_달리는동화_release.apk](apk/러닝테일_달리는동화_release.apk)
 - release 빌드는 API 키 없이 데모 모드로 동작합니다
 
 ## 구조
