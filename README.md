@@ -21,7 +21,8 @@
 
 | 항목 | 내용 |
 |---|---|
-| 에뮬레이터 | Pleos Connect AVD (Android API 34) |
+| 에뮬레이터 | Pleos Connect Emulator 2.1.0 (시스템 이미지 `release_connect_v2.1.0`, Android 14 / API 34, x86_64), Android Emulator 37.2.13 |
+| 화면 | 2560×1440, 160dpi (AVD 이름 `Pleos_Connect`) |
 | Android SDK | compileSdk 34, minSdk 28, build-tools 34 |
 | JDK | 17 이상 |
 | Pleos SDK | Vehicle 2.3.2, NaviHelper 3.0.5, TextToSpeech 3.3.1 |
